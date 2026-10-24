@@ -107,6 +107,7 @@ export default async function InvoiceDetailsPage({
                 ← Back to dashboard
             </Link>
 
+
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">
@@ -115,10 +116,20 @@ export default async function InvoiceDetailsPage({
                     <p className="mt-2 text-gray-500">Invoice details</p>
                 </div>
 
-                <span className="w-fit rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold capitalize text-gray-700">
-                    {invoiceData.status}
-                </span>
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="w-fit rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold capitalize text-gray-700">
+                        {invoiceData.status}
+                    </span>
+
+                    <Link
+                        href={`/protected/invoices/${invoiceData.id}/edit`}
+                        className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700"
+                    >
+                        Edit Invoice
+                    </Link>
+                </div>
             </div>
+
 
             <section className="mt-8 rounded-xl border bg-white p-6 text-gray-900 shadow-sm">
                 <h2 className="text-lg font-semibold">Customer</h2>
