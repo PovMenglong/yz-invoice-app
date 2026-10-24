@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import DeleteInvoiceButton from "./delete/delete-invoice-button";
 
 export const instant = false;
 
@@ -127,6 +128,8 @@ export default async function InvoiceDetailsPage({
                     >
                         Edit Invoice
                     </Link>
+
+                    <DeleteInvoiceButton invoiceId={invoiceData.id} />
                 </div>
             </div>
 
