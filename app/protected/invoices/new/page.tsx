@@ -1,6 +1,7 @@
 
 "use client";
 
+import { createInvoice } from "./actions";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -9,11 +10,19 @@ export default function NewInvoicePage() {
   const [customerName, setCustomerName] = useState("");
   const [amount, setAmount] = useState("");
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    alert(
-      `Form test successful!\nInvoice: ${invoiceNumber}\nCustomer: ${customerName}\nAmount: ${amount}`
-    );
+
+    const formData = new FormData(e.currentTarget);
+    const result = await createInvoice(formData);
+
+    alert(result.message);
+
+    if (result.success) {
+      setInvoiceNumber("");
+      setCustomerName("");
+      setAmount("");
+    }
   }
 
   return (
@@ -42,6 +51,7 @@ export default function NewInvoicePage() {
             Invoice Number
           </label>
           <input
+            name="invoiceNumber"
             required
             value={invoiceNumber}
             onChange={(e) => setInvoiceNumber(e.target.value)}
@@ -55,6 +65,7 @@ export default function NewInvoicePage() {
             Customer Name
           </label>
           <input
+            name="customerName"
             required
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
@@ -68,6 +79,7 @@ export default function NewInvoicePage() {
             Amount
           </label>
           <input
+            name="amount"
             required
             type="number"
             min="0.01"
@@ -83,7 +95,7 @@ export default function NewInvoicePage() {
           type="submit"
           className="w-full rounded-md bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700"
         >
-          Test Invoice Form
+          Create Invoice
         </button>
       </form>
     </main>

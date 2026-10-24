@@ -214,7 +214,12 @@ export default function InvoiceDashboard({
                 {filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4 font-semibold">
-                      {invoice.invoice_number}
+                      <Link
+                        href={`/protected/invoices/${invoice.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {invoice.invoice_number}
+                      </Link>
                     </td>
                     <td className="px-5 py-4">
                       {invoice.customer_name}
