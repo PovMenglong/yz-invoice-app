@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeleteInvoiceButton from "./delete/delete-invoice-button";
+import DownloadInvoicePdf from "./download-invoice-pdf";
 
 export const instant = false;
 
@@ -77,6 +78,29 @@ export default async function InvoiceDetailsPage({
     }
 
     const invoiceData = invoice as InvoiceDetails;
+
+    const { data: canEdit, error: permissionError } = await supabase
+        .rpc("can_edit_invoice", {
+            target_invoice_id: invoiceData.id,
+        });
+
+    if (permissionError) {
+        throw new Error("Unable to verify invoice editing permissions.");
+    }
+
+    const { data: memberRole, error: roleError } = await supabase
+        .from("company_members")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+    if (roleError) {
+        throw new Error("Unable to verify invoice deletion permissions.");
+    }
+
+    const canDelete = memberRole?.role === "admin";
+    
     let customerName = "No customer";
 
     if (invoiceData.customer_id) {
@@ -117,20 +141,40 @@ export default async function InvoiceDetailsPage({
                     <p className="mt-2 text-gray-500">Invoice details</p>
                 </div>
 
+
                 <div className="flex flex-wrap items-center gap-3">
                     <span className="w-fit rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold capitalize text-gray-700">
                         {invoiceData.status}
                     </span>
 
-                    <Link
-                        href={`/protected/invoices/${invoiceData.id}/edit`}
-                        className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700"
-                    >
-                        Edit Invoice
-                    </Link>
+                    <DownloadInvoicePdf
+                        invoiceId={invoiceData.id}
+                        invoiceNumber={invoiceData.invoice_number}
+                    />
 
-                    <DeleteInvoiceButton invoiceId={invoiceData.id} />
+
+                    {canEdit ? (
+                        <Link
+                            href={`/protected/invoices/${invoiceData.id}/edit`}
+                            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700"
+                        >
+                            Edit Invoice
+                        </Link>
+                    ) : (
+                        <span
+                            role="status"
+                            className="rounded-lg bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800"
+                        >
+                            Editing not allowed
+                        </span>
+                    )}
+
+                    {canDelete && (
+                        <DeleteInvoiceButton invoiceId={invoiceData.id} />
+                    )}
+
                 </div>
+
             </div>
 
 

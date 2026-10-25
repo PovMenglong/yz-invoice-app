@@ -1,4 +1,3 @@
-
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -27,9 +26,10 @@ export async function deleteInvoice(formData: FormData) {
     };
   }
 
+  // Check active company membership and role.
   const { data: membership, error: membershipError } = await supabase
     .from("company_members")
-    .select("user_id")
+    .select("role")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .maybeSingle();
@@ -37,10 +37,18 @@ export async function deleteInvoice(formData: FormData) {
   if (membershipError || !membership) {
     return {
       success: false,
-      message: "You do not have permission to delete invoices.",
+      message: "You don't have permission to delete invoices. Please contact your administrator.",
     };
   }
 
+  if (membership.role !== "admin") {
+    return {
+      success: false,
+      message: "Deletion Not Allowed: Only an administrator can delete invoices.",
+    };
+  }
+
+  // Check that the invoice exists and is visible to this user.
   const { data: invoice, error: lookupError } = await supabase
     .from("invoices")
     .select("id")
@@ -54,6 +62,7 @@ export async function deleteInvoice(formData: FormData) {
     };
   }
 
+  // The database RLS policy must also authorize this deletion.
   const { error: deleteError } = await supabase
     .from("invoices")
     .delete()
@@ -62,7 +71,7 @@ export async function deleteInvoice(formData: FormData) {
   if (deleteError) {
     return {
       success: false,
-      message: `Could not delete invoice: ${deleteError.message}`,
+      message: "Could not delete the invoice. Please try again or contact your administrator.",
     };
   }
 

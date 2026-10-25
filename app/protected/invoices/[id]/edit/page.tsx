@@ -4,6 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EditInvoiceForm from "./edit-invoice-form";
 
+import AccessDenied from "./access-denied";
+
+
 export const instant = false;
 
 type EditPageProps = {
@@ -44,6 +47,14 @@ export default async function EditInvoicePage({ params }: EditPageProps) {
     if (invoiceError || !invoice) {
         notFound();
     }
+
+    const { data: canEdit, error: permissionError } = await supabase
+        .rpc("can_edit_invoice", { target_invoice_id: invoice.id });
+
+    if (permissionError || !canEdit) {
+        return <AccessDenied />;
+    }
+
 
     let customerName = "";
 
