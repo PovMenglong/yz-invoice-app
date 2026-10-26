@@ -1,8 +1,10 @@
+
 import { DeployButton } from "@/components/deploy-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasEnvVars } from "@/lib/utils";
+import DashboardSidebar from "./dashboard-sidebar";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -12,16 +14,20 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="flex min-h-screen flex-col">
+        {/* Existing top navigation */}
+        <nav className="flex h-16 w-full items-center justify-center border-b border-foreground/10">
+          <div className="flex w-full items-center justify-between px-5 py-3">
+            <div className="flex items-center gap-5 font-semibold">
+              <Link href="/" className="text-base">
+                Invoice Manager
+              </Link>
+              <div className="hidden items-center gap-2 md:flex">
                 <DeployButton />
               </div>
             </div>
+
             {!hasEnvVars ? (
               <EnvVarWarning />
             ) : (
@@ -31,11 +37,20 @@ export default function ProtectedLayout({
             )}
           </div>
         </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          {children}
+
+        {/* Sidebar + page content */}
+        <div className="flex flex-1">
+          <div className="hidden shrink-0 md:block">
+            <DashboardSidebar />
+          </div>
+
+          <div className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
+            {children}
+          </div>
         </div>
 
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
+        {/* Existing footer controls */}
+        <footer className="flex w-full flex-wrap items-center justify-center gap-6 border-t py-6 text-center text-sm">
           <p>
             Powered by{" "}
             <a

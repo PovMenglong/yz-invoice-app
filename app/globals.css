@@ -30,6 +30,7 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -56,13 +57,29 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), var(--font-khmer), sans-serif;
   }
+
+  .font-khmer,
+  [lang="km"] {
+    font-family: var(--font-khmer), sans-serif;
+    line-height: 1.8;
+    letter-spacing: 0;
+  }
+
+    /* Improve readability for customers */
+    html {
+      font-size: 18px;
+    }
+  
+    body {
+      line-height: 1.7;
+    }
 }
