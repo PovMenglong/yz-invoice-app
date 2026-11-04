@@ -20,25 +20,61 @@ export function UpdatePasswordForm({
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
 
-  const handleForgotPassword = async (
-    e: React.SubmitEvent<HTMLFormElement>,
+  const handleUpdatePassword = async (
+    e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
-    const supabase = createClient();
-    setIsLoading(true);
     setError(null);
 
+    if (password.length < 8) {
+      setError("Your password must contain at least 8 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("The passwords do not match.");
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
+      const supabase = createClient();
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password,
+      });
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Only allow a local application path as the redirect destination.
+      const requestedNext = new URLSearchParams(
+        window.location.search,
+      ).get("next");
+
+      const next =
+        requestedNext &&
+          requestedNext.startsWith("/") &&
+          !requestedNext.startsWith("//")
+          ? requestedNext
+          : "/protected";
+
+      router.replace(next);
+      router.refresh();
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update your password. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -48,28 +84,63 @@ export function UpdatePasswordForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
+          <CardTitle className="text-2xl">
+            Create Your Password
+          </CardTitle>
           <CardDescription>
-            Please enter your new password below.
+            Enter and confirm your password to access the Y&Z Home Store
+            Cambodia Invoice Management System.
           </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <form onSubmit={handleForgotPassword}>
-            <div className="flex flex-col gap-6">
+          <form onSubmit={handleUpdatePassword}>
+            <div className="flex flex-col gap-5">
               <div className="grid gap-2">
                 <Label htmlFor="password">New password</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="New password"
+                  placeholder="Enter your new password"
+                  autoComplete="new-password"
                   required
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Use at least 8 characters.
+                </p>
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save new password"}
+
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">
+                  Confirm password
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Enter your password again"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-500" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? "Saving password..." : "Create Password"}
               </Button>
             </div>
           </form>

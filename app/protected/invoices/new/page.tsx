@@ -1,103 +1,117 @@
-
-"use client";
-
-import { createInvoice } from "./actions";
-import { useState } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import InvoiceForm from "./invoice-form";
 
-export default function NewInvoicePage() {
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [amount, setAmount] = useState("");
+export const instant = false;
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+export type InvoiceProduct = {
+    id: string;
+    name: string;
+    sku: string | null;
+    description: string | null;
+    unit: string;
+    selling_price: number;
+};
 
-    const formData = new FormData(e.currentTarget);
-    const result = await createInvoice(formData);
+export type InvoiceCustomer = {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    billing_address: string | null;
+};
 
-    alert(result.message);
+export default async function NewInvoicePage() {
+    await connection();
 
-    if (result.success) {
-      setInvoiceNumber("");
-      setCustomerName("");
-      setAmount("");
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+        error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+        redirect("/auth/login");
     }
-  }
 
-  return (
-    <main className="mx-auto max-w-2xl p-8">
-      <Link
-        href="/protected"
-        className="text-blue-500 hover:underline"
-      >
-        ← Back to dashboard
-      </Link>
+    const { data: membership, error: membershipError } = await supabase
+        .from("company_members")
+        .select("is_active")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      <h1 className="mt-6 text-3xl font-bold">
-        Create Invoice
-      </h1>
+    if (
+        membershipError ||
+        !membership ||
+        membership.is_active !== true
+    ) {
+        return (
+            <main className="mx-auto max-w-3xl px-4 py-12">
+                <h1 className="text-2xl font-bold text-gray-900">
+                    Company access required
+                </h1>
 
-      <p className="mt-2 text-gray-500">
-        Enter your invoice details below.
-      </p>
+                <p className="mt-2 text-gray-600">
+                    Your account must be an active company member to create invoices.
+                </p>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mt-6 space-y-5 rounded-xl border p-6"
-      >
-        <div>
-          <label className="mb-2 block font-medium">
-            Invoice Number
-          </label>
-          <input
-            name="invoiceNumber"
-            required
-            value={invoiceNumber}
-            onChange={(e) => setInvoiceNumber(e.target.value)}
-            placeholder="INV-0001"
-            className="w-full rounded-md border p-3 text-black"
-          />
-        </div>
+                <Link
+                    href="/protected/invoices"
+                    className="mt-5 inline-block text-blue-600 hover:underline"
+                >
+                    Back to invoices
+                </Link>
+            </main>
+        );
+    }
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Customer Name
-          </label>
-          <input
-            name="customerName"
-            required
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Customer name"
-            className="w-full rounded-md border p-3 text-black"
-          />
-        </div>
+    const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, name, sku, description, unit, selling_price")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Amount
-          </label>
-          <input
-            name="amount"
-            required
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            className="w-full rounded-md border p-3 text-black"
-          />
-        </div>
+    if (productsError) {
+        console.error("Failed to load products:", productsError.message);
+    }
 
-        <button
-          type="submit"
-          className="w-full rounded-md bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700"
-        >
-          Create Invoice
-        </button>
-      </form>
-    </main>
-  );
+    const activeProducts: InvoiceProduct[] = (products ?? []).map(
+        (product) => ({
+            id: product.id,
+            name: product.name,
+            sku: product.sku,
+            description: product.description,
+            unit: product.unit,
+            selling_price: Number(product.selling_price),
+        })
+    );
+
+    const { data: customers, error: customersError } = await supabase
+        .from("customers")
+        .select("id, name, phone, email, billing_address")
+        .order("name", { ascending: true });
+
+    if (customersError) {
+        console.error("Failed to load customers:", customersError.message);
+    }
+
+    const savedCustomers: InvoiceCustomer[] = (customers ?? []).map(
+        (customer) => ({
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            email: customer.email,
+            billing_address: customer.billing_address,
+        })
+    );
+
+    return (
+        <InvoiceForm
+            products={activeProducts}
+            customers={savedCustomers}
+        />
+    );
 }

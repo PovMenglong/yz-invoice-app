@@ -22,6 +22,14 @@ type EditInvoiceFormProps = {
     customerName: string;
 };
 
+const labelClass =
+    "mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200";
+
+const inputClass =
+    "w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-900";
+
+const allowedStatuses = ["draft", "issued", "paid", "void"];
+
 export default function EditInvoiceForm({
     invoice,
     customerName,
@@ -50,194 +58,200 @@ export default function EditInvoiceForm({
         }
     }
 
+    const status = allowedStatuses.includes(invoice.status)
+        ? invoice.status
+        : "draft";
+
     return (
         <form action={handleSubmit} className="mt-8 space-y-6">
             <input type="hidden" name="invoiceId" value={invoice.id} />
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                    <label
-                        htmlFor="invoiceNumber"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Invoice Number
-                    </label>
-                    <input
-                        id="invoiceNumber"
-                        name="invoiceNumber"
-                        defaultValue={invoice.invoice_number}
-                        required
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                    />
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-7">
+                <div className="mb-6">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                        Invoice Information
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Update the invoice number, customer, dates, and status.
+                    </p>
                 </div>
 
-                <div>
-                    <label
-                        htmlFor="customerName"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Customer Name
-                    </label>
-                    <input
-                        id="customerName"
-                        name="customerName"
-                        defaultValue={customerName}
-                        required
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                    />
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <div>
+                        <label htmlFor="invoiceNumber" className={labelClass}>
+                            Invoice Number *
+                        </label>
+                        <input
+                            id="invoiceNumber"
+                            name="invoiceNumber"
+                            defaultValue={invoice.invoice_number}
+                            required
+                            className={inputClass}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="customerName" className={labelClass}>
+                            Customer Name *
+                        </label>
+                        <input
+                            id="customerName"
+                            name="customerName"
+                            defaultValue={customerName}
+                            required
+                            className={inputClass}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="issueDate" className={labelClass}>
+                            Issue Date *
+                        </label>
+                        <input
+                            id="issueDate"
+                            name="issueDate"
+                            type="date"
+                            defaultValue={invoice.issue_date}
+                            required
+                            className={inputClass}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="dueDate" className={labelClass}>
+                            Due Date
+                        </label>
+                        <input
+                            id="dueDate"
+                            name="dueDate"
+                            type="date"
+                            defaultValue={invoice.due_date ?? ""}
+                            className={inputClass}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="status" className={labelClass}>
+                            Invoice Status *
+                        </label>
+                        <select
+                            id="status"
+                            name="status"
+                            defaultValue={status}
+                            required
+                            className={inputClass}
+                        >
+                            <option value="draft">Draft</option>
+                            <option value="issued">Issued / Sent</option>
+                            <option value="paid">Paid</option>
+                            <option value="void">Cancelled / Voided</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-7">
+                <div className="mb-6">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                        Financial Information
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Review and update the invoice amounts.
+                    </p>
                 </div>
 
-                <div>
-                    <label
-                        htmlFor="issueDate"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Issue Date
-                    </label>
-                    <input
-                        id="issueDate"
-                        name="issueDate"
-                        type="date"
-                        defaultValue={invoice.issue_date}
-                        required
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                    />
-                </div>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <div>
+                        <label htmlFor="subtotal" className={labelClass}>
+                            Subtotal (USD) *
+                        </label>
+                        <input
+                            id="subtotal"
+                            name="subtotal"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={invoice.subtotal}
+                            required
+                            className={inputClass}
+                        />
+                    </div>
 
-                <div>
-                    <label
-                        htmlFor="dueDate"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Due Date
-                    </label>
-                    <input
-                        id="dueDate"
-                        name="dueDate"
-                        type="date"
-                        defaultValue={invoice.due_date ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                    />
-                </div>
+                    <div>
+                        <label htmlFor="discountTotal" className={labelClass}>
+                            Discount (USD)
+                        </label>
+                        <input
+                            id="discountTotal"
+                            name="discountTotal"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={invoice.discount_total}
+                            className={inputClass}
+                        />
+                    </div>
 
-                <div>
-                    <label
-                        htmlFor="status"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Status
-                    </label>
-                    <select
-                        id="status"
-                        name="status"
-                        defaultValue={invoice.status}
-                        required
-                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
-                    >
-                        <option value="draft">Draft</option>
-                        <option value="sent">Sent</option>
-                        <option value="paid">Paid</option>
-                        <option value="overdue">Overdue</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+                    <div>
+                        <label htmlFor="taxTotal" className={labelClass}>
+                            Tax (USD)
+                        </label>
+                        <input
+                            id="taxTotal"
+                            name="taxTotal"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={invoice.tax_total}
+                            className={inputClass}
+                        />
+                    </div>
                 </div>
+            </section>
 
-                <div>
-                    <label
-                        htmlFor="subtotal"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Subtotal (USD)
-                    </label>
-                    <input
-                        id="subtotal"
-                        name="subtotal"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={invoice.subtotal}
-                        required
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                    />
-                </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-7">
+                <h2 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">
+                    Additional Notes
+                </h2>
 
-                <div>
-                    <label
-                        htmlFor="discountTotal"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Discount (USD)
-                    </label>
-                    <input
-                        id="discountTotal"
-                        name="discountTotal"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={invoice.discount_total}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                    />
-                </div>
-
-                <div>
-                    <label
-                        htmlFor="taxTotal"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Tax (USD)
-                    </label>
-                    <input
-                        id="taxTotal"
-                        name="taxTotal"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={invoice.tax_total}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                    />
-                </div>
-            </div>
-
-            <div>
-                <label
-                    htmlFor="notes"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="notes" className={labelClass}>
                     Notes
                 </label>
                 <textarea
                     id="notes"
                     name="notes"
-                    rows={4}
+                    rows={5}
                     defaultValue={invoice.notes ?? ""}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                    placeholder="Enter invoice notes..."
+                    className={`${inputClass} resize-y`}
                 />
-            </div>
+            </section>
 
             {message && (
-                <p
+                <div
                     role="status"
-                    className="rounded-lg bg-gray-100 px-4 py-3 text-sm text-gray-700"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                 >
                     {message}
-                </p>
+                </div>
             )}
 
-            <div className="flex flex-wrap gap-3">
-                <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                    {isSaving ? "Saving..." : "Save Changes"}
-                </button>
-
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 dark:border-slate-700 sm:flex-row sm:justify-end">
                 <button
                     type="button"
                     onClick={() => router.push(`/protected/invoices/${invoice.id}`)}
-                    className="rounded-lg border border-gray-300 px-5 py-3 font-medium text-gray-700 hover:bg-gray-50"
+                    disabled={isSaving}
+                    className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 >
                     Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {isSaving ? "Saving..." : "Save Changes"}
                 </button>
             </div>
         </form>

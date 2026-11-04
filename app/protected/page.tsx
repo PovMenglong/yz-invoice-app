@@ -1,6 +1,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import InvoiceDashboard from "./invoice-dashboard";
+import { connection } from "next/server";
 
 export const instant = false;
 
@@ -20,6 +21,8 @@ type InvoiceRow = {
 };
 
 export default async function ProtectedPage() {
+  await connection();
+
   const supabase = await createClient();
 
   const { data: claimsData, error: claimsError } =

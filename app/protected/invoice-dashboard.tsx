@@ -7,12 +7,12 @@ import { useTheme } from "next-themes";
 import {
   AlertCircle,
   CheckCircle2,
-  Clock3,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   Languages,
   Moon,
   Plus,
-  Search,
   Sun,
   Wallet,
 } from "lucide-react";
@@ -33,130 +33,199 @@ type Invoice = {
   customer_name: string;
 };
 
-type Filter = "all" | "draft" | "pending" | "paid" | "overdue";
 type Language = "en" | "km";
+type Period = "week" | "month" | "year";
 
 const translations = {
   en: {
     title: "Dashboard",
-    subtitle: "Track your invoices and payments at a glance.",
+    subtitle: "Track your invoices and financial performance.",
     create: "Create invoice",
-    total: "Total invoices",
-    paid: "Paid invoices",
-    pending: "Pending invoices",
-    overdue: "Overdue invoices",
-    totalValue: "Total invoice value",
-    paidValue: "Paid value",
-    pendingValue: "Pending value",
-    overdueValue: "Overdue value",
-    recent: "Invoices",
-    search: "Search invoice number or customer...",
-    all: "All invoices",
-    draft: "Draft",
-    pendingFilter: "Pending",
-    paidFilter: "Paid",
-    overdueFilter: "Overdue",
+    totalInvoiced: "Total invoiced",
+    collected: "Collected",
+    outstanding: "Outstanding",
+    overdue: "Overdue",
+    period: "Reporting period",
+    week: "Week",
+    month: "Month",
+    year: "Year",
+    previous: "Previous period",
+    next: "Next period",
+    current: "Current period",
+    recent: "Recent invoices",
+    viewAll: "View all invoices",
     invoice: "Invoice",
     customer: "Customer",
     issueDate: "Issue date",
     dueDate: "Due date",
     status: "Status",
     amount: "Total",
-    empty: "No invoices found",
-    emptyHint: "Try another search or filter, or create your first invoice.",
-    showing: "Showing",
-    of: "of",
-    invoices: "invoices",
-    overdueStatus: "Overdue",
+    empty: "No invoices yet",
+    emptyHint: "Create your first invoice to see it here.",
     noCustomer: "No customer",
     workspace: "Company workspace",
     language: "Switch language",
     theme: "Switch theme",
-    light: "Light mode",
-    dark: "Dark mode",
+    paid: "Paid",
+    draft: "Draft",
+    pending: "Pending",
+    overdueStatus: "Overdue",
+    noPeriodInvoices: "No invoices in this period",
+    invoicedHint: "Non-draft invoices issued in this period",
+    collectedHint: "Paid invoices, grouped by issue date",
+    outstandingHint: "Unpaid balance of invoices issued in this period",
+    overdueHint: "Unpaid invoices past their due date",
+    collectionNote:
+      "Collection is estimated using invoice issue dates because payment dates are not recorded yet.",
   },
   km: {
     title: "ផ្ទាំងគ្រប់គ្រង",
-    subtitle: "តាមដានវិក្កយបត្រ និងការទូទាត់របស់អ្នក។",
+    subtitle: "តាមដានវិក្កយបត្រ និងលទ្ធផលហិរញ្ញវត្ថុ។",
     create: "បង្កើតវិក្កយបត្រ",
-    total: "វិក្កយបត្រសរុប",
-    paid: "បានទូទាត់",
-    pending: "កំពុងរង់ចាំ",
+    totalInvoiced: "វិក្កយបត្រសរុប",
+    collected: "បានទទួលប្រាក់",
+    outstanding: "ប្រាក់មិនទាន់ទូទាត់",
     overdue: "ហួសកំណត់",
-    totalValue: "តម្លៃវិក្កយបត្រសរុប",
-    paidValue: "ចំនួនទឹកប្រាក់ដែលបានទូទាត់",
-    pendingValue: "ចំនួនទឹកប្រាក់ដែលកំពុងរង់ចាំ",
-    overdueValue: "ចំនួនទឹកប្រាក់ដែលហួសកំណត់",
-    recent: "វិក្កយបត្រ",
-    search: "ស្វែងរកលេខវិក្កយបត្រ ឬអតិថិជន...",
-    all: "វិក្កយបត្រទាំងអស់",
-    draft: "សេចក្តីព្រាង",
-    pendingFilter: "កំពុងរង់ចាំ",
-    paidFilter: "បានទូទាត់",
-    overdueFilter: "ហួសកំណត់",
+    period: "រយៈពេលរបាយការណ៍",
+    week: "សប្តាហ៍",
+    month: "ខែ",
+    year: "ឆ្នាំ",
+    previous: "រយៈពេលមុន",
+    next: "រយៈពេលបន្ទាប់",
+    current: "រយៈពេលបច្ចុប្បន្ន",
+    recent: "វិក្កយបត្រថ្មីៗ",
+    viewAll: "មើលវិក្កយបត្រទាំងអស់",
     invoice: "វិក្កយបត្រ",
     customer: "អតិថិជន",
     issueDate: "កាលបរិច្ឆេទចេញ",
     dueDate: "ថ្ងៃផុតកំណត់",
     status: "ស្ថានភាព",
     amount: "សរុប",
-    empty: "រកមិនឃើញវិក្កយបត្រទេ",
-    emptyHint: "សាកល្បងស្វែងរក ឬជ្រើសតម្រងផ្សេងទៀត។",
-    showing: "បង្ហាញ",
-    of: "ក្នុងចំណោម",
-    invoices: "វិក្កយបត្រ",
-    overdueStatus: "ហួសកំណត់",
+    empty: "មិនទាន់មានវិក្កយបត្រទេ",
+    emptyHint: "បង្កើតវិក្កយបត្រដំបូងរបស់អ្នក។",
     noCustomer: "គ្មានអតិថិជន",
     workspace: "កន្លែងធ្វើការរបស់ក្រុមហ៊ុន",
     language: "ប្តូរភាសា",
     theme: "ប្តូររូបរាង",
-    light: "រូបរាងភ្លឺ",
-    dark: "រូបរាងងងឹត",
+    paid: "បានទូទាត់",
+    draft: "សេចក្តីព្រាង",
+    pending: "កំពុងរង់ចាំ",
+    overdueStatus: "ហួសកំណត់",
+    noPeriodInvoices: "មិនមានវិក្កយបត្រក្នុងរយៈពេលនេះទេ",
+    invoicedHint: "វិក្កយបត្រដែលបានចេញក្នុងរយៈពេលនេះ មិនរាប់សេចក្តីព្រាង",
+    collectedHint: "វិក្កយបត្រដែលបានទូទាត់ ដោយផ្អែកលើថ្ងៃចេញវិក្កយបត្រ",
+    outstandingHint: "ប្រាក់មិនទាន់ទូទាត់នៃវិក្កយបត្រដែលបានចេញក្នុងរយៈពេលនេះ",
+    overdueHint: "វិក្កយបត្រមិនទាន់ទូទាត់ដែលហួសថ្ងៃកំណត់",
+    collectionNote:
+      "ការគណនាប្រាក់ដែលបានទទួលប្រើថ្ងៃចេញវិក្កយបត្រ ព្រោះមិនទាន់មានទិន្នន័យថ្ងៃទូទាត់។",
   },
 };
 
 function money(amount: number, currency: string, language: Language) {
   try {
-    return new Intl.NumberFormat(
-      language === "km" ? "km-KH" : "en-US",
-      {
-        style: "currency",
-        currency: currency || "USD",
-      }
-    ).format(Number(amount) || 0);
+    return new Intl.NumberFormat(language === "km" ? "km-KH" : "en-US", {
+      style: "currency",
+      currency: currency || "USD",
+    }).format(Number(amount) || 0);
   } catch {
     return `${currency || "USD"} ${Number(amount || 0).toFixed(2)}`;
   }
 }
 
-function isOverdue(invoice: Invoice) {
-  return (
-    invoice.status.toLowerCase() !== "paid" &&
-    invoice.due_date !== null &&
-    invoice.due_date < new Date().toISOString().slice(0, 10)
-  );
+function localDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function matchesFilter(invoice: Invoice, filter: Filter) {
-  const status = invoice.status.toLowerCase();
+function getPeriodRange(period: Period, offset: number) {
+  const today = new Date();
+  let start: Date;
+  let end: Date;
 
-  switch (filter) {
-    case "draft":
-      return status === "draft";
-    case "paid":
-      return status === "paid";
-    case "overdue":
-      return isOverdue(invoice);
-    case "pending":
-      return (
-        status === "pending" ||
-        status === "sent" ||
-        status === "unpaid" ||
-        status === "partial"
-      );
-    default:
-      return true;
+  if (period === "week") {
+    const currentMonday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+    const day = currentMonday.getDay();
+    currentMonday.setDate(
+      currentMonday.getDate() - (day === 0 ? 6 : day - 1)
+    );
+
+    start = new Date(currentMonday);
+    start.setDate(start.getDate() + offset * 7);
+
+    end = new Date(start);
+    end.setDate(end.getDate() + 6);
+  } else if (period === "year") {
+    start = new Date(today.getFullYear() + offset, 0, 1);
+    end = new Date(today.getFullYear() + offset, 11, 31);
+  } else {
+    start = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    end = new Date(today.getFullYear(), today.getMonth() + offset + 1, 0);
   }
+
+  return {
+    start: localDateString(start),
+    end: localDateString(end),
+    startDate: start,
+    endDate: end,
+  };
+}
+
+function formatPeriod(
+  period: Period,
+  start: Date,
+  end: Date,
+  language: Language
+) {
+  const locale = language === "km" ? "km-KH" : "en-US";
+
+  if (period === "year") {
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+    }).format(start);
+  }
+
+  if (period === "month") {
+    return new Intl.DateTimeFormat(locale, {
+      month: "long",
+      year: "numeric",
+    }).format(start);
+  }
+
+  const startText = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+  }).format(start);
+
+  const endText = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(end);
+
+  return `${startText} – ${endText}`;
+}
+
+function isPaid(invoice: Invoice) {
+  return invoice.status.toLowerCase() === "paid";
+}
+
+function isDraft(invoice: Invoice) {
+  return invoice.status.toLowerCase() === "draft";
+}
+
+function isOverdue(invoice: Invoice) {
+  return (
+    !isPaid(invoice) &&
+    !isDraft(invoice) &&
+    Boolean(invoice.due_date) &&
+    invoice.due_date! < localDateString(new Date())
+  );
 }
 
 function statusStyle(invoice: Invoice) {
@@ -164,32 +233,22 @@ function statusStyle(invoice: Invoice) {
     return "bg-red-500/10 text-red-600 dark:text-red-400";
   }
 
-  switch (invoice.status.toLowerCase()) {
-    case "paid":
-      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
-    case "draft":
-      return "bg-muted text-muted-foreground";
-    default:
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+  if (isPaid(invoice)) {
+    return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
   }
+
+  if (isDraft(invoice)) {
+    return "bg-muted text-muted-foreground";
+  }
+
+  return "bg-amber-500/10 text-amber-700 dark:text-amber-400";
 }
 
 function displayStatus(invoice: Invoice, t: typeof translations.en) {
   if (isOverdue(invoice)) return t.overdueStatus;
-
-  switch (invoice.status.toLowerCase()) {
-    case "paid":
-      return t.paidFilter;
-    case "draft":
-      return t.draft;
-    case "pending":
-    case "sent":
-    case "unpaid":
-    case "partial":
-      return t.pendingFilter;
-    default:
-      return invoice.status;
-  }
+  if (isPaid(invoice)) return t.paid;
+  if (isDraft(invoice)) return t.draft;
+  return t.pending;
 }
 
 export default function InvoiceDashboard({
@@ -197,48 +256,51 @@ export default function InvoiceDashboard({
 }: {
   invoices: Invoice[];
 }) {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
   const [language, setLanguage] = useState<Language>("en");
+  const [period, setPeriod] = useState<Period>("month");
+  const [periodOffset, setPeriodOffset] = useState(0);
   const [mounted, setMounted] = useState(false);
+
   const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
+
     const saved = window.localStorage.getItem("invoice-language");
-    if (saved === "en" || saved === "km") setLanguage(saved);
+    if (saved === "en" || saved === "km") {
+      setLanguage(saved);
+    }
   }, []);
 
   const t = translations[language];
   const isDark = mounted && resolvedTheme === "dark";
 
-  function toggleLanguage() {
-    const next = language === "en" ? "km" : "en";
-    setLanguage(next);
-    window.localStorage.setItem("invoice-language", next);
-  }
-
-  const filteredInvoices = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return invoices.filter((invoice) => {
-      const matchesSearch =
-        invoice.invoice_number.toLowerCase().includes(term) ||
-        (invoice.customer_name || "").toLowerCase().includes(term);
-
-      return matchesSearch && matchesFilter(invoice, filter);
-    });
-  }, [invoices, search, filter]);
-
-  const paid = invoices.filter(
-    (invoice) => invoice.status.toLowerCase() === "paid"
+  const range = useMemo(
+    () => getPeriodRange(period, periodOffset),
+    [period, periodOffset]
   );
 
-  const pending = invoices.filter((invoice) =>
-    matchesFilter(invoice, "pending")
+  const periodInvoices = useMemo(
+    () =>
+      invoices.filter(
+        (invoice) =>
+          invoice.issue_date >= range.start &&
+          invoice.issue_date <= range.end
+      ),
+    [invoices, range.start, range.end]
   );
 
-  const overdue = invoices.filter((invoice) => isOverdue(invoice));
+  const issuedInvoices = periodInvoices.filter(
+    (invoice) => !isDraft(invoice)
+  );
+
+  const paidInvoices = periodInvoices.filter(isPaid);
+
+  const outstandingInvoices = issuedInvoices.filter(
+    (invoice) => !isPaid(invoice)
+  );
+
+  const overdueInvoices = outstandingInvoices.filter(isOverdue);
 
   const totalAmount = (items: Invoice[]) =>
     items.reduce(
@@ -248,36 +310,55 @@ export default function InvoiceDashboard({
 
   const currency = invoices[0]?.currency || "USD";
 
-  const filters: { label: string; value: Filter }[] = [
-    { label: t.all, value: "all" },
-    { label: t.draft, value: "draft" },
-    { label: t.pendingFilter, value: "pending" },
-    { label: t.paidFilter, value: "paid" },
-    { label: t.overdueFilter, value: "overdue" },
-  ];
+  const recentInvoices = useMemo(
+    () =>
+      [...invoices]
+        .sort((a, b) => {
+          const dateA = a.created_at || a.issue_date;
+          const dateB = b.created_at || b.issue_date;
+          return dateB.localeCompare(dateA);
+        })
+        .slice(0, 8),
+    [invoices]
+  );
+
+  function toggleLanguage() {
+    const next = language === "en" ? "km" : "en";
+    setLanguage(next);
+    window.localStorage.setItem("invoice-language", next);
+  }
+
+  function changePeriod(nextPeriod: Period) {
+    setPeriod(nextPeriod);
+    setPeriodOffset(0);
+  }
+
+  const periodLabel = formatPeriod(
+    period,
+    range.startDate,
+    range.endDate,
+    language
+  );
+
+  const isCurrentPeriod = periodOffset === 0;
 
   return (
     <main
-      lang={language === "km" ? "km" : "en"}
-      className={`mx-auto w-full max-w-[1600px] space-y-7 text-base ${language === "km" ? "font-khmer" : ""
+      lang={language}
+      className={`mx-auto w-full max-w-[1600px] space-y-6 text-base ${language === "km" ? "font-khmer" : ""
         }`}
     >
-      <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-        <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-            <Wallet size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {t.workspace}
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">
-              {t.title}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {t.subtitle}
-            </p>
-          </div>
+      <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-lg font-medium text-blue-600 dark:text-blue-400">
+            {t.workspace}
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#c5a45d]">
+            {t.title}
+          </h1>
+          <p className="mt-2 text-lg text-slate-500 dark:text-slate-400">
+            {t.subtitle}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -286,9 +367,9 @@ export default function InvoiceDashboard({
             onClick={toggleLanguage}
             aria-label={t.language}
             title={t.language}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-medium transition hover:bg-accent"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <Languages size={17} />
+            <Languages size={18} />
             {language === "en" ? "ខ្មែរ" : "English"}
           </button>
 
@@ -297,14 +378,14 @@ export default function InvoiceDashboard({
             onClick={() => setTheme(isDark ? "light" : "dark")}
             aria-label={t.theme}
             title={t.theme}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card transition hover:bg-accent"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           <Link
             href="/protected/invoices/new"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-lg font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
             <Plus size={18} />
             {t.create}
@@ -312,143 +393,207 @@ export default function InvoiceDashboard({
         </div>
       </header>
 
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              {t.period}
+            </h2>
+            <p className="mt-1 text-lg text-slate-500 dark:text-slate-400">
+              {periodLabel}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+              {(["week", "month", "year"] as Period[]).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => changePeriod(item)}
+                  aria-pressed={period === item}
+                  className={`rounded-md px-3 py-2 text-sm font-semibold transition ${period === item
+                      ? "bg-white text-blue-700 shadow-sm dark:bg-slate-700 dark:text-blue-300"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                    }`}
+                >
+                  {t[item]}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPeriodOffset((value) => value - 1)}
+              aria-label={t.previous}
+              title={t.previous}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPeriodOffset((value) => value + 1)}
+              disabled={isCurrentPeriod}
+              aria-label={t.next}
+              title={t.next}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <ChevronRight size={18} />
+            </button>
+
+            {!isCurrentPeriod && (
+              <button
+                type="button"
+                onClick={() => setPeriodOffset(0)}
+                className="h-10 rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
+              >
+                {t.current}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
-          icon={<FileText size={20} />}
-          iconStyle="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-          label={t.total}
-          value={String(invoices.length)}
-          detail={`${money(totalAmount(invoices), currency, language)} · ${t.totalValue}`}
+          icon={<FileText size={30} />}
+          iconStyle="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+          accent="bg-blue-600"
+          label={t.totalInvoiced}
+          value={money(totalAmount(issuedInvoices), currency, language)}
+          detail={`${issuedInvoices.length} · ${t.invoicedHint}`}
         />
+
         <SummaryCard
-          icon={<CheckCircle2 size={20} />}
-          iconStyle="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          label={t.paid}
-          value={String(paid.length)}
-          detail={`${money(totalAmount(paid), currency, language)} · ${t.paidValue}`}
+          icon={<CheckCircle2 size={30} />}
+          iconStyle="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+          accent="bg-emerald-500"
+          label={t.collected}
+          value={money(totalAmount(paidInvoices), currency, language)}
+          detail={`${paidInvoices.length} · ${t.collectedHint}`}
         />
+
         <SummaryCard
-          icon={<Clock3 size={20} />}
-          iconStyle="bg-amber-500/10 text-amber-700 dark:text-amber-400"
-          label={t.pending}
-          value={String(pending.length)}
-          detail={`${money(totalAmount(pending), currency, language)} · ${t.pendingValue}`}
+          icon={<Wallet size={30} />}
+          iconStyle="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+          accent="bg-amber-500"
+          label={t.outstanding}
+          value={money(totalAmount(outstandingInvoices), currency, language)}
+          detail={`${outstandingInvoices.length} · ${t.outstandingHint}`}
         />
+
         <SummaryCard
-          icon={<AlertCircle size={20} />}
-          iconStyle="bg-red-500/10 text-red-600 dark:text-red-400"
+          icon={<AlertCircle size={30} />}
+          iconStyle="bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+          accent="bg-rose-500"
           label={t.overdue}
-          value={String(overdue.length)}
-          detail={`${money(totalAmount(overdue), currency, language)} · ${t.overdueValue}`}
+          value={money(totalAmount(overdueInvoices), currency, language)}
+          detail={`${overdueInvoices.length} · ${t.overdueHint}`}
         />
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border p-5 sm:p-6">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <p className="text-base leading-relaxed text-slate-500 dark:text-slate-400">
+        {t.collectionNote}
+      </p>
+
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col justify-between gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:p-5 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <FileText
+              className="text-blue-700 dark:text-blue-400"
+              size={21}
+            />
             <div>
-              <h2 className="text-lg font-semibold">{t.recent}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t.showing} {filteredInvoices.length} {t.of}{" "}
-                {invoices.length} {t.invoices}
+              <h2 className="text-lg font-bold tracking-tight text-slate-950 dark:text-white">
+                {t.recent}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {recentInvoices.length} {language === "en" ? "most recent invoices" : "វិក្កយបត្រថ្មីៗ"}
               </p>
             </div>
-
-            <div className="relative w-full sm:max-w-sm">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={t.search}
-                aria-label={t.search}
-                className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-4 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-              />
-            </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            {filters.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setFilter(item.value)}
-                aria-pressed={filter === item.value}
-                className={`rounded-xl px-3.5 py-2 text-sm font-medium transition ${filter === item.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <Link
+            href="/protected/invoices"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-slate-700 dark:text-blue-400 dark:hover:bg-slate-800"
+          >
+            {t.viewAll}
+            <ChevronRight size={20} className="ml-1" />
+          </Link>
         </div>
 
-        {filteredInvoices.length === 0 ? (
+        {recentInvoices.length === 0 ? (
           <div className="px-6 py-16 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-              <FileText size={24} />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+              <FileText size={20} />
             </div>
-            <h3 className="mt-4 font-semibold">{t.empty}</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
+              {t.empty}
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
               {t.emptyHint}
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-base">
-              <thead className="bg-muted/60 text-muted-foreground">
+          <div className="w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[600px] text-left text-base">
+              <thead className="bg-blue-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 <tr>
                   {[t.invoice, t.customer, t.issueDate, t.dueDate, t.status].map(
                     (heading) => (
                       <th
                         key={heading}
-                        className="px-5 py-4 font-medium"
+                        className="whitespace-nowrap px-5 py-4 text-lg font-bold uppercase tracking-wide"
                       >
                         {heading}
                       </th>
                     )
                   )}
-                  <th className="px-5 py-4 text-right font-medium">
+                  <th className="whitespace-nowrap px-5 py-4 text-right text-xl font-bold uppercase tracking-wide">
                     {t.amount}
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {filteredInvoices.map((invoice) => (
+
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {recentInvoices.map((invoice) => (
                   <tr
                     key={invoice.id}
-                    className="border-b border-border/70 transition-colors hover:bg-accent/40"
+                    className="transition-colors hover:bg-blue-50/60 dark:hover:bg-slate-800/60"
                   >
-                    <td className="px-5 py-4 font-semibold">
+                    <td className="whitespace-nowrap px-5 py-4">
                       <Link
                         href={`/protected/invoices/${invoice.id}`}
-                        className="font-semibold text-primary hover:underline"
+                        className="font-bold text-blue-700 hover:text-blue-900 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         {invoice.invoice_number}
                       </Link>
                     </td>
-                    <td className="px-5 py-4">
+
+                    <td className="px-5 py-4 font-medium text-slate-800 dark:text-slate-100">
                       {invoice.customer_name || t.noCustomer}
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-muted-foreground">
+
+                    <td className="whitespace-nowrap px-5 py-4 text-slate-500 dark:text-slate-400">
                       {invoice.issue_date || "—"}
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-muted-foreground">
+
+                    <td className="whitespace-nowrap px-5 py-4 text-slate-500 dark:text-slate-400">
                       {invoice.due_date || "—"}
                     </td>
-                    <td className="px-5 py-4">
+
+                    <td className="px-4 py-4">
                       <span
-                        className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(invoice)}`}
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-base font-bold ${statusStyle(invoice)}`}
                       >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
                         {displayStatus(invoice, t)}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-right font-semibold tabular-nums">
+
+                    <td className="whitespace-nowrap px-4 py-6 text-right font-bold tabular-nums text-slate-900 dark:text-white">
                       {money(
                         Number(invoice.grand_total),
                         invoice.currency,
@@ -462,9 +607,8 @@ export default function InvoiceDashboard({
           </div>
         )}
 
-        <footer className="border-t border-border px-5 py-4 text-sm text-muted-foreground">
-          {t.showing} {filteredInvoices.length} {t.of}{" "}
-          {invoices.length} {t.invoices}
+        <footer className="border-t border-slate-200 px-5 py-4 text-base text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          {t.recent}
         </footer>
       </section>
     </main>
@@ -474,39 +618,41 @@ export default function InvoiceDashboard({
 function SummaryCard({
   icon,
   iconStyle,
+  accent,
   label,
   value,
   detail,
 }: {
   icon: React.ReactNode;
   iconStyle: string;
+  accent: string;
   label: string;
   value: string;
   detail: string;
 }) {
-
   return (
-    <div className="group rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-7">
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-lg font-semibold leading-relaxed text-muted-foreground">
+    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+      <div className={`absolute inset-x-0 top-0 h-1 ${accent}`} />
+
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xl font-semibold text-slate-500 dark:text-slate-400">
           {label}
         </p>
 
         <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconStyle}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconStyle}`}
         >
           {icon}
         </div>
       </div>
 
-      <p className="mt-5 text-4xl font-bold tracking-tight tabular-nums">
+      <p className="mt-4 break-words text-2xl font-bold tracking-tight text-slate-950 tabular-nums dark:text-white sm:text-3xl">
         {value}
       </p>
 
-      <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+      <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
         {detail}
       </p>
     </div>
   );
-
 }

@@ -45,7 +45,7 @@ export async function updateInvoice(formData: FormData) {
   const discountTotal = Number(formData.get("discountTotal") || 0);
   const taxTotal = Number(formData.get("taxTotal") || 0);
 
-  const allowedStatuses = ["draft", "sent", "paid", "overdue", "cancelled"];
+  const allowedStatuses = ["draft", "issued", "paid", "void"];
 
   if (
     !invoiceId ||
