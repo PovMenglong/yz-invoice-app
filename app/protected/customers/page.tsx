@@ -1,14 +1,15 @@
-
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import CustomerSearch from "./customer-search";
 
 export const instant = false;
 
 export default async function CustomersPage() {
-    const supabase = await createClient();
+    await connection();
 
+    const supabase = await createClient();
     const {
         data: { user },
     } = await supabase.auth.getUser();
@@ -56,10 +57,10 @@ export default async function CustomersPage() {
     }
 
     return (
-        <main className="mx-auto max-w-6xl px-6 py-10">
+        <main className="mx-auto max-w-7xl px-6 py-10">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#c5a45d]">
                         Customers
                     </h1>
                     <p className="mt-2 text-gray-500">

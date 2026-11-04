@@ -1,0 +1,20 @@
+{
+    "$schema": "./node_modules/wrangler/config-schema.json",
+    "name": "yzhomestore",
+    "main": ".open-next/worker.js",
+    "compatibility_date": "2026-11-03",
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+    },
+    "browser": {
+        "binding": "BROWSER",
+        "remote": true
+    },
+    "observability": {
+        "enabled": true
+    }
+}

@@ -1,11 +1,10 @@
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import EditInvoiceForm from "./edit-invoice-form";
-
 import AccessDenied from "./access-denied";
-
 
 export const instant = false;
 
@@ -13,7 +12,12 @@ type EditPageProps = {
     params: Promise<{ id: string }>;
 };
 
-export default async function EditInvoicePage({ params }: EditPageProps) {
+export default async function EditInvoicePage({
+    params,
+}: EditPageProps) {
+    // Render this page at request time instead of prerendering it.
+    await connection();
+
     const { id } = await params;
     const supabase = await createClient();
 
@@ -39,7 +43,7 @@ export default async function EditInvoicePage({ params }: EditPageProps) {
     const { data: invoice, error: invoiceError } = await supabase
         .from("invoices")
         .select(
-            "id, invoice_number, customer_id, status, issue_date, due_date, subtotal, discount_total, tax_total, notes",
+            "id, invoice_number, customer_id, status, issue_date, due_date, subtotal, discount_total, tax_total, notes"
         )
         .eq("id", id)
         .maybeSingle();
@@ -49,12 +53,13 @@ export default async function EditInvoicePage({ params }: EditPageProps) {
     }
 
     const { data: canEdit, error: permissionError } = await supabase
-        .rpc("can_edit_invoice", { target_invoice_id: invoice.id });
+        .rpc("can_edit_invoice", {
+            target_invoice_id: invoice.id,
+        });
 
     if (permissionError || !canEdit) {
         return <AccessDenied />;
     }
-
 
     let customerName = "";
 
@@ -76,16 +81,17 @@ export default async function EditInvoicePage({ params }: EditPageProps) {
         <main className="mx-auto max-w-4xl px-6 py-10">
             <Link
                 href={`/protected/invoices/${invoice.id}`}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
                 ← Back to Invoice
             </Link>
 
             <div className="mt-6">
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
                     Edit Invoice
                 </h1>
-                <p className="mt-2 text-gray-500">
+
+                <p className="mt-2 text-slate-500 dark:text-slate-400">
                     Update the invoice information below.
                 </p>
             </div>

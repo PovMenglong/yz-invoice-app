@@ -1,23 +1,46 @@
 
-import { chromium } from "playwright";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import type { Browser } from "@cloudflare/playwright";
 
-export async function GET() {
-  let browser;
+export async function GET(request: Request) {
+  let browser: Browser | undefined;
 
   try {
-    const fontPath = path.join(
-      process.cwd(),
-      "public",
-      "fonts",
-      "NotoSansKhmer-Regular.ttf"
+    const { env } = await getCloudflareContext({ async: true });
+
+    if (!env.ASSETS) {
+      throw new Error("Cloudflare ASSETS binding is unavailable.");
+    }
+
+    const fontResponse = await env.ASSETS.fetch(
+      new Request(
+        new URL("/fonts/NotoSansKhmer-Regular.ttf", request.url)
+      )
     );
 
-    const fontBytes = await readFile(fontPath);
-    const fontBase64 = fontBytes.toString("base64");
+    if (!fontResponse.ok) {
+      throw new Error(
+        `Could not load Khmer font. Asset response: ${fontResponse.status}`
+      );
+    }
 
-    browser = await chromium.launch({ headless: true });
+    const fontBytes = new Uint8Array(
+      await fontResponse.arrayBuffer()
+    );
+
+    let binary = "";
+    const chunkSize = 0x8000;
+
+    for (let i = 0; i < fontBytes.length; i += chunkSize) {
+      binary += String.fromCharCode(
+        ...fontBytes.subarray(i, i + chunkSize)
+      );
+    }
+
+    const fontBase64 = btoa(binary);
+
+    const { launch } = await import("@cloudflare/playwright");
+    browser = await launch(env.BROWSER);
 
     const page = await browser.newPage({
       viewport: { width: 794, height: 1123 },
@@ -44,7 +67,8 @@ export async function GET() {
           </style>
         </head>
         <body>
-          <div>សៅ ការេ។</div>
+          <h2>Khmer Font Test</h2>
+          <div>សួស្តី កម្ពុជា</div>
         </body>
       </html>
     `;
