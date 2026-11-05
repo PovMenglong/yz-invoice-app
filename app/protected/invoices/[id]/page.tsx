@@ -7,6 +7,7 @@ import DeleteInvoiceButton from "./delete/delete-invoice-button";
 import DownloadInvoicePdf from "./download-invoice-pdf";
 import UpdateInvoiceStatus from "./update-invoice-status";
 import InvoicePrintView from "./invoice-print-view";
+import InvoiceAssignmentManager from "./invoice-assignment-manager";
 
 export const instant = false;
 
@@ -90,7 +91,7 @@ export default async function InvoiceDetailsPage({
     // Verify active company membership.
     const { data: membership, error: membershipError } = await supabase
         .from("company_members")
-        .select("is_active")
+        .select("role, is_active")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -277,19 +278,67 @@ export default async function InvoiceDetailsPage({
         throw new Error("Unable to verify invoice editing permissions.");
     }
 
-    // Verify member role for deletion permissions.
-    const { data: memberRole, error: roleError } = await supabase
-        .from("company_members")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
+    // Verify admin permissions.
+    const canAdministerAssignments = membership.role === "admin";
+    const canDelete = canAdministerAssignments;
 
-    if (roleError) {
-        throw new Error("Unable to verify invoice deletion permissions.");
+    // Load employees and current assignments for administrators.
+    let employees: { id: string; name: string }[] = [];
+    let assignedEmployeeIds: string[] = [];
+
+    if (canAdministerAssignments) {
+        const { data: employeeMemberships, error: employeesError } =
+            await supabase
+                .from("company_members")
+                .select("user_id")
+                .eq("role", "employee")
+                .eq("is_active", true);
+
+        if (employeesError) {
+            throw new Error("Unable to load active employees.");
+        }
+
+        const employeeIds = (employeeMemberships ?? []).map(
+            (member) => member.user_id
+        );
+
+        let employeeProfiles: { id: string; full_name: string }[] = [];
+
+        if (employeeIds.length > 0) {
+            const { data: profiles, error: profilesError } = await supabase
+                .from("profiles")
+                .select("id, full_name")
+                .in("id", employeeIds);
+
+            if (profilesError) {
+                throw new Error("Unable to load employee profiles.");
+            }
+
+            employeeProfiles = profiles ?? [];
+        }
+
+        const profileNameById = new Map(
+            employeeProfiles.map((profile) => [profile.id, profile.full_name])
+        );
+
+        employees = employeeIds.map((id) => ({
+            id,
+            name: profileNameById.get(id) || "Employee (profile unavailable)",
+        }));
+
+        const { data: assignments, error: assignmentsError } = await supabase
+            .from("invoice_assignments")
+            .select("user_id")
+            .eq("invoice_id", invoiceData.id);
+
+        if (assignmentsError) {
+            throw new Error("Unable to load invoice assignments.");
+        }
+
+        assignedEmployeeIds = (assignments ?? []).map(
+            (assignment) => assignment.user_id
+        );
     }
-
-    const canDelete = memberRole?.role === "admin";
 
     // Currency formatting.
     const money = (value: number) =>
@@ -435,6 +484,14 @@ export default async function InvoiceDetailsPage({
                     </div>
                 </section>
 
+                {canAdministerAssignments && (
+                    <InvoiceAssignmentManager
+                        invoiceId={invoiceData.id}
+                        employees={employees}
+                        initialAssignedEmployeeIds={assignedEmployeeIds}
+                    />
+                )}
+                
                 {/* Financial overview */}
                 <section>
                     <div className="mb-3">
