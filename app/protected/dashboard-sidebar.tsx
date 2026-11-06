@@ -53,7 +53,7 @@ export default function DashboardSidebar({
             {/* Sidebar header */}
             <div className="flex h-20 shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4">
                 {!collapsed && (
-                    <Link href="/protected" className="min-w-0">
+                    <Link href="/protected" prefetch={false} className="min-w-0">
                         <span className="block truncate text-lg font-bold tracking-tight text-white">
                             Y&Z HOME STORE
                         </span>
@@ -90,6 +90,7 @@ export default function DashboardSidebar({
                         <Link
                             key={href}
                             href={href}
+                            prefetch={false}
                             title={collapsed ? label : undefined}
                             aria-current={active ? "page" : undefined}
                             className={`relative flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all ${active
@@ -129,6 +130,7 @@ export default function DashboardSidebar({
             <div className="shrink-0 border-t border-white/10 p-3">
                 <Link
                     href="/protected/profile"
+                    prefetch={false}
                     title={collapsed ? `${displayName} - My Profile` : "My Profile"}
                     className={`flex items-center rounded-xl transition hover:bg-white/10 ${collapsed
                             ? "justify-center p-2"
