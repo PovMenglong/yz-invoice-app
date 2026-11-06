@@ -49,11 +49,11 @@ export default async function EditProductPage({
     if (membershipError || !membership) {
         return (
             <main className="mx-auto max-w-3xl px-6 py-10">
-                <h1 className="text-2xl font-bold text-red-700">
+                <h1 className="text-2xl font-bold text-red-700 dark:text-red-400">
                     Company access required
                 </h1>
 
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
                     Your account must be an active company member to edit products.
                 </p>
             </main>
@@ -72,17 +72,17 @@ export default async function EditProductPage({
     if (error) {
         return (
             <main className="mx-auto max-w-3xl px-6 py-10">
-                <h1 className="text-2xl font-bold text-red-700">
+                <h1 className="text-2xl font-bold text-red-700 dark:text-red-400">
                     Could not load product
                 </h1>
 
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
                     {error.message}
                 </p>
 
                 <Link
                     href="/protected/products"
-                    className="mt-4 inline-block text-blue-600 underline"
+                    className="mt-4 inline-block text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                     Back to Products
                 </Link>
@@ -111,17 +111,17 @@ export default async function EditProductPage({
 
         return (
             <main className="mx-auto max-w-3xl px-6 py-10">
-                <h1 className="text-2xl font-bold text-red-700">
+                <h1 className="text-2xl font-bold text-red-700 dark:text-red-400">
                     Could not load product image gallery
                 </h1>
 
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
                     {galleryError.message}
                 </p>
 
                 <Link
                     href="/protected/products"
-                    className="mt-4 inline-block text-blue-600 underline"
+                    className="mt-4 inline-block text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                     Back to Products
                 </Link>
@@ -165,21 +165,21 @@ export default async function EditProductPage({
             <div className="mb-8">
                 <Link
                     href="/protected/products"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                     ← Back to Products
                 </Link>
 
-                <h1 className="mt-4 text-3xl font-bold text-gray-900">
+                <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-white">
                     Edit Product
                 </h1>
 
-                <p className="mt-2 text-gray-500">
+                <p className="mt-2 text-gray-500 dark:text-gray-400">
                     Update product details and manage its image gallery below.
                 </p>
 
                 {!product.is_active && (
-                    <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                    <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
                         This product is inactive. Editing it will not automatically
                         activate it.
                     </p>

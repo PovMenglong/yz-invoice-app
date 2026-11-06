@@ -222,15 +222,15 @@ export default function EditProductForm({
     }
 
     const inputClass =
-        "w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+        "w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-blue-400 dark:focus:ring-blue-900/40";
 
     const labelClass =
-        "mb-2 block text-sm font-medium text-gray-700";
+        "mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200";
 
     return (
         <form
             action={formAction}
-            className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 text-gray-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-gray-100"
         >
             <input
                 type="hidden"
@@ -241,11 +241,11 @@ export default function EditProductForm({
             {/* Existing product image gallery */}
             <div>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                         Product Image Gallery
                     </label>
 
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                         {images.length} existing image(s)
                     </span>
                 </div>
@@ -255,7 +255,7 @@ export default function EditProductForm({
                         {images.map((image) => (
                             <div
                                 key={image.id}
-                                className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+                                className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800"
                             >
                                 <div className="relative">
                                     <img
@@ -282,7 +282,7 @@ export default function EditProductForm({
                                                 isPending ||
                                                 isGalleryPending
                                             }
-                                            className="w-full rounded-md border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                                            className="w-full rounded-md border border-blue-200 px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/50"
                                         >
                                             Set as Primary
                                         </button>
@@ -297,7 +297,7 @@ export default function EditProductForm({
                                             isPending ||
                                             isGalleryPending
                                         }
-                                        className="w-full rounded-md border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                        className="w-full rounded-md border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
                                     >
                                         Delete Image
                                     </button>
@@ -306,8 +306,8 @@ export default function EditProductForm({
                         ))}
                     </div>
                 ) : (
-                    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                        <p className="text-sm text-gray-500">
+                    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center dark:border-slate-600 dark:bg-slate-800/60">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             No product images yet.
                         </p>
                     </div>
@@ -317,7 +317,7 @@ export default function EditProductForm({
                 {galleryMessage && (
                     <p
                         role="status"
-                        className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-700"
+                        className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-300"
                     >
                         {galleryMessage}
                     </p>
@@ -326,7 +326,7 @@ export default function EditProductForm({
                 {galleryError && (
                     <p
                         role="alert"
-                        className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700"
+                        className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
                     >
                         {galleryError}
                     </p>
@@ -334,7 +334,7 @@ export default function EditProductForm({
             </div>
 
             {/* Add new images */}
-            <div className="border-t border-gray-200 pt-5">
+            <div className="border-t border-gray-200 pt-5 dark:border-slate-700">
                 <label
                     htmlFor="productImages"
                     className={labelClass}
@@ -350,24 +350,24 @@ export default function EditProductForm({
                     multiple
                     onChange={handleImagesChange}
                     disabled={isPending || isGalleryPending}
-                    className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2.5 file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+                    className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2.5 file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:text-gray-300 dark:file:bg-blue-950/60 dark:file:text-blue-300 dark:hover:file:bg-blue-900/60"
                 />
 
-                <p className="mt-2 text-xs leading-5 text-gray-500">
+                <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                     Select multiple JPG, PNG, or WebP images.
                     Maximum 5 MB per image. Existing images will
                     not be replaced.
                 </p>
 
                 {imageError && (
-                    <p className="mt-2 text-sm text-red-600">
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                         {imageError}
                     </p>
                 )}
 
                 {newImages.length > 0 && (
                     <div className="mt-5">
-                        <p className="mb-3 text-sm font-medium text-gray-700">
+                        <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-200">
                             New image preview ({newImages.length})
                         </p>
 
@@ -375,7 +375,7 @@ export default function EditProductForm({
                             {newImages.map((image, index) => (
                                 <div
                                     key={`${image.file.name}-${index}`}
-                                    className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+                                    className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800"
                                 >
                                     <img
                                         src={image.url}
@@ -385,13 +385,13 @@ export default function EditProductForm({
 
                                     <div className="p-2">
                                         <p
-                                            className="truncate text-xs font-medium text-gray-700"
+                                            className="truncate text-xs font-medium text-gray-700 dark:text-gray-200"
                                             title={image.file.name}
                                         >
                                             {image.file.name}
                                         </p>
 
-                                        <p className="mt-1 text-xs text-gray-500">
+                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                             {(
                                                 image.file.size /
                                                 (1024 * 1024)
@@ -470,7 +470,7 @@ export default function EditProductForm({
                         name="unit"
                         required
                         defaultValue={product.unit}
-                        className={`${inputClass} bg-white`}
+                        className={inputClass}
                         disabled={isPending || state.success}
                     >
                         {units.map((unit) => (
@@ -501,7 +501,7 @@ export default function EditProductForm({
                     </label>
 
                     <div className="relative">
-                        <span className="absolute left-4 top-3 text-gray-500">
+                        <span className="absolute left-4 top-3 text-gray-500 dark:text-gray-400">
                             $
                         </span>
 
@@ -526,8 +526,8 @@ export default function EditProductForm({
                 <div
                     role="status"
                     className={`rounded-lg p-4 text-sm ${state.success
-                            ? "bg-green-50 text-green-800"
-                            : "bg-red-50 text-red-700"
+                            ? "bg-green-50 text-green-800 dark:bg-green-950/40 dark:text-green-300"
+                            : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
                         }`}
                 >
                     {state.message}
@@ -546,10 +546,10 @@ export default function EditProductForm({
             )}
 
             {/* Form buttons */}
-            <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 dark:border-slate-700 sm:flex-row sm:justify-end">
                 <Link
                     href="/protected/products"
-                    className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-5 py-3 font-medium text-gray-700 hover:bg-gray-50"
+                    className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-5 py-3 font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-800"
                 >
                     Cancel
                 </Link>
