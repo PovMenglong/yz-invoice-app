@@ -11,13 +11,17 @@ type PageProps = {
     params: Promise<{ id: string }>;
 };
 
-export default async function EditProductPage({ params }: PageProps) {
+export default async function EditProductPage({
+    params,
+}: PageProps) {
     await connection();
 
     const { id } = await params;
 
     if (
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            id
+        )
     ) {
         notFound();
     }
@@ -34,12 +38,13 @@ export default async function EditProductPage({ params }: PageProps) {
     }
 
     // Verify active company membership
-    const { data: membership, error: membershipError } = await supabase
-        .from("company_members")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
+    const { data: membership, error: membershipError } =
+        await supabase
+            .from("company_members")
+            .select("user_id")
+            .eq("user_id", user.id)
+            .eq("is_active", true)
+            .maybeSingle();
 
     if (membershipError || !membership) {
         return (
@@ -55,7 +60,7 @@ export default async function EditProductPage({ params }: PageProps) {
         );
     }
 
-    // Load product, including its private image path
+    // Load product
     const { data: product, error } = await supabase
         .from("products")
         .select(
@@ -71,7 +76,9 @@ export default async function EditProductPage({ params }: PageProps) {
                     Could not load product
                 </h1>
 
-                <p className="mt-2 text-gray-600">{error.message}</p>
+                <p className="mt-2 text-gray-600">
+                    {error.message}
+                </p>
 
                 <Link
                     href="/protected/products"
@@ -87,23 +94,71 @@ export default async function EditProductPage({ params }: PageProps) {
         notFound();
     }
 
-    // Generate temporary URL for the existing private image
-    let imageUrl: string | null = null;
+    // Load all gallery images
+    const { data: galleryImages, error: galleryError } =
+        await supabase
+            .from("product_images")
+            .select("id, image_path, is_primary, created_at")
+            .eq("product_id", product.id)
+            .order("is_primary", { ascending: false })
+            .order("created_at", { ascending: true });
 
-    if (product.image_path) {
-        const { data: imageData, error: imageError } = await supabase.storage
-            .from("product-images")
-            .createSignedUrl(product.image_path, 60 * 60);
+    if (galleryError) {
+        console.error(
+            "Could not load product image gallery:",
+            galleryError.message
+        );
 
-        if (imageError) {
-            console.error(
-                "Could not generate product image URL:",
-                imageError.message
-            );
-        }
+        return (
+            <main className="mx-auto max-w-3xl px-6 py-10">
+                <h1 className="text-2xl font-bold text-red-700">
+                    Could not load product image gallery
+                </h1>
 
-        imageUrl = imageData?.signedUrl ?? null;
+                <p className="mt-2 text-gray-600">
+                    {galleryError.message}
+                </p>
+
+                <Link
+                    href="/protected/products"
+                    className="mt-4 inline-block text-blue-600 underline"
+                >
+                    Back to Products
+                </Link>
+            </main>
+        );
     }
+
+    // Generate a signed URL for each private image
+    const images = await Promise.all(
+        (galleryImages ?? []).map(async (image) => {
+            const { data, error: signedUrlError } =
+                await supabase.storage
+                    .from("product-images")
+                    .createSignedUrl(image.image_path, 60 * 60);
+
+            if (signedUrlError || !data?.signedUrl) {
+                console.error(
+                    "Could not generate product image URL:",
+                    image.image_path,
+                    signedUrlError?.message
+                );
+
+                return null;
+            }
+
+            return {
+                id: image.id,
+                image_path: image.image_path,
+                image_url: data.signedUrl,
+                is_primary: image.is_primary,
+            };
+        })
+    );
+
+    const validImages = images.filter(
+        (image): image is NonNullable<typeof image> => image !== null
+    );
 
     return (
         <main className="mx-auto max-w-3xl px-6 py-10">
@@ -120,7 +175,7 @@ export default async function EditProductPage({ params }: PageProps) {
                 </h1>
 
                 <p className="mt-2 text-gray-500">
-                    Update the product details and image below.
+                    Update product details and manage its image gallery below.
                 </p>
 
                 {!product.is_active && (
@@ -139,7 +194,7 @@ export default async function EditProductPage({ params }: PageProps) {
                     description: product.description ?? "",
                     unit: product.unit,
                     selling_price: Number(product.selling_price),
-                    image_url: imageUrl,
+                    images: validImages,
                 }}
             />
         </main>

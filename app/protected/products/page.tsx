@@ -22,12 +22,13 @@ export default async function ProductsPage() {
     }
 
     // Check active company membership
-    const { data: membership, error: membershipError } = await supabase
-        .from("company_members")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
+    const { data: membership, error: membershipError } =
+        await supabase
+            .from("company_members")
+            .select("user_id")
+            .eq("user_id", user.id)
+            .eq("is_active", true)
+            .maybeSingle();
 
     if (membershipError || !membership) {
         return (
@@ -43,7 +44,7 @@ export default async function ProductsPage() {
         );
     }
 
-    // Load products, including their private image paths
+    // Load products
     const { data: products, error } = await supabase
         .from("products")
         .select(
@@ -65,19 +66,64 @@ export default async function ProductsPage() {
         );
     }
 
-    // Generate temporary signed URLs for private product images
+    const productList = products ?? [];
+
+    // Load primary gallery image for each product
+    const { data: galleryImages, error: galleryError } =
+        await supabase
+            .from("product_images")
+            .select("product_id, image_path")
+            .eq("is_primary", true)
+            .in(
+                "product_id",
+                productList.map((product) => product.id)
+            );
+
+    if (galleryError) {
+        console.error(
+            "Could not load primary product images:",
+            galleryError.message
+        );
+
+        return (
+            <main className="mx-auto max-w-6xl px-6 py-10">
+                <h1 className="text-3xl font-bold text-gray-900">
+                    Products
+                </h1>
+
+                <p className="mt-4 text-red-600">
+                    Could not load product image gallery. Please check your database permissions.
+                </p>
+            </main>
+        );
+    }
+
+    const primaryImagePaths = new Map(
+        (galleryImages ?? []).map((image) => [
+            image.product_id,
+            image.image_path,
+        ])
+    );
+
+    // Generate signed URLs using primary gallery image.
+    // Fall back to legacy products.image_path when necessary.
     const productsWithImages = await Promise.all(
-        (products ?? []).map(async (product) => {
-            if (!product.image_path) {
+        productList.map(async (product) => {
+            const imagePath =
+                primaryImagePaths.get(product.id) ??
+                product.image_path;
+
+            if (!imagePath) {
                 return {
                     ...product,
                     image_url: null,
                 };
             }
 
-            const { data, error: imageError } = await supabase.storage
-                .from("product-images")
-                .createSignedUrl(product.image_path, 60 * 60);
+            const { data, error: imageError } =
+                await supabase.storage
+                    .from("product-images")
+                    .createSignedUrl(imagePath, 60 * 60);
 
             if (imageError) {
                 console.error(

@@ -12,6 +12,9 @@ const ALLOWED_IMAGE_TYPES: Record<string, string> = {
     "image/webp": "webp",
 };
 
+const UUID_REGEX =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function getAuthorizedClient() {
     const supabase = await createClient();
 
@@ -23,7 +26,7 @@ async function getAuthorizedClient() {
     if (authError || !user) {
         return {
             supabase,
-            authorized: false,
+            authorized: false as const,
             message: "Please sign in before managing products.",
         };
     }
@@ -38,14 +41,14 @@ async function getAuthorizedClient() {
     if (membershipError || !membership) {
         return {
             supabase,
-            authorized: false,
+            authorized: false as const,
             message: "You do not have permission to manage products.",
         };
     }
 
     return {
         supabase,
-        authorized: true,
+        authorized: true as const,
         message: "",
     };
 }
@@ -98,40 +101,113 @@ function readProduct(formData: FormData) {
     };
 }
 
-function readProductImage(formData: FormData) {
-    const value = formData.get("image");
+function readProductImages(formData: FormData) {
+    // "images" supports the new multiple-image form.
+    // "image" keeps compatibility with the previous single-image form.
+    const values = formData.getAll("images");
+    const entries = values.length > 0 ? values : [formData.get("image")];
 
-    if (!(value instanceof File) || value.size === 0) {
-        return {
-            error: "",
-            image: null as File | null,
-            extension: "",
-        };
-    }
+    const images: File[] = [];
 
-    const extension = ALLOWED_IMAGE_TYPES[value.type];
+    for (const value of entries) {
+        if (value === null || value === "") {
+            continue;
+        }
 
-    if (!extension) {
-        return {
-            error: "Please upload a JPG, PNG, or WebP image.",
-            image: null,
-            extension: "",
-        };
-    }
+        if (!(value instanceof File)) {
+            return {
+                error: "Invalid product image upload.",
+                images: [] as File[],
+            };
+        }
 
-    if (value.size > MAX_IMAGE_SIZE) {
-        return {
-            error: "Product image must not exceed 5 MB.",
-            image: null,
-            extension: "",
-        };
+        if (value.size === 0) {
+            continue;
+        }
+
+        if (!ALLOWED_IMAGE_TYPES[value.type]) {
+            return {
+                error: "Please upload only JPG, PNG, or WebP images.",
+                images: [] as File[],
+            };
+        }
+
+        if (value.size > MAX_IMAGE_SIZE) {
+            return {
+                error: "Each product image must not exceed 5 MB.",
+                images: [] as File[],
+            };
+        }
+
+        images.push(value);
     }
 
     return {
         error: "",
-        image: value,
-        extension,
+        images,
     };
+}
+
+function isValidProductId(productId: string) {
+    return UUID_REGEX.test(productId);
+}
+
+async function uploadProductImages(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    productId: string,
+    images: File[]
+) {
+    const uploadedPaths: string[] = [];
+
+    for (const image of images) {
+        const extension = ALLOWED_IMAGE_TYPES[image.type];
+
+        const imagePath =
+            `${productId}/${crypto.randomUUID()}.${extension}`;
+
+        const { error } = await supabase.storage
+            .from(PRODUCT_IMAGE_BUCKET)
+            .upload(imagePath, image, {
+                contentType: image.type,
+                cacheControl: "3600",
+                upsert: false,
+            });
+
+        if (error) {
+            if (uploadedPaths.length > 0) {
+                await supabase.storage
+                    .from(PRODUCT_IMAGE_BUCKET)
+                    .remove(uploadedPaths);
+            }
+
+            return {
+                error: `Product image upload failed: ${error.message}`,
+                paths: [] as string[],
+            };
+        }
+
+        uploadedPaths.push(imagePath);
+    }
+
+    return {
+        error: "",
+        paths: uploadedPaths,
+    };
+}
+
+async function removeUploadedImages(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    paths: string[]
+) {
+    if (paths.length === 0) return;
+
+    const { error } = await supabase.storage
+        .from(PRODUCT_IMAGE_BUCKET)
+        .remove(paths);
+
+    if (error) {
+        console.error("Could not clean up product images:", error.message);
+    }
 }
 
 export async function createProduct(formData: FormData) {
@@ -150,7 +226,7 @@ export async function createProduct(formData: FormData) {
         };
     }
 
-    const imageResult = readProductImage(formData);
+    const imageResult = readProductImages(formData);
 
     if (imageResult.error) {
         return {
@@ -159,7 +235,6 @@ export async function createProduct(formData: FormData) {
         };
     }
 
-    // Create the product first so we have its database ID.
     const { data: newProduct, error: insertError } = await auth.supabase
         .from("products")
         .insert({
@@ -183,27 +258,20 @@ export async function createProduct(formData: FormData) {
         };
     }
 
-    // No image selected: product creation is already complete.
-    if (!imageResult.image) {
+    if (imageResult.images.length === 0) {
         return {
             success: true,
             message: "Product added successfully!",
         };
     }
 
-    const imagePath = `${newProduct.id}/${crypto.randomUUID()}.${imageResult.extension}`;
+    const uploadResult = await uploadProductImages(
+        auth.supabase,
+        newProduct.id,
+        imageResult.images
+    );
 
-    // Upload the image to the private Supabase Storage bucket.
-    const { error: uploadError } = await auth.supabase.storage
-        .from(PRODUCT_IMAGE_BUCKET)
-        .upload(imagePath, imageResult.image, {
-            contentType: imageResult.image.type,
-            cacheControl: "3600",
-            upsert: false,
-        });
-
-    if (uploadError) {
-        // Remove the product if its selected image could not be uploaded.
+    if (uploadResult.error) {
         await auth.supabase
             .from("products")
             .delete()
@@ -211,23 +279,48 @@ export async function createProduct(formData: FormData) {
 
         return {
             success: false,
-            message: `Product image upload failed: ${uploadError.message}`,
+            message: uploadResult.error,
         };
     }
 
-    // Save the private Storage object path in the products table.
+    const imageRows = uploadResult.paths.map((path, index) => ({
+        product_id: newProduct.id,
+        image_path: path,
+        is_primary: index === 0,
+    }));
+
+    const { error: galleryError } = await auth.supabase
+        .from("product_images")
+        .insert(imageRows);
+
+    if (galleryError) {
+        await removeUploadedImages(auth.supabase, uploadResult.paths);
+
+        await auth.supabase
+            .from("products")
+            .delete()
+            .eq("id", newProduct.id);
+
+        return {
+            success: false,
+            message: `Could not save product gallery: ${galleryError.message}`,
+        };
+    }
+
     const { error: imageUpdateError } = await auth.supabase
         .from("products")
         .update({
-            image_path: imagePath,
+            image_path: uploadResult.paths[0],
         })
         .eq("id", newProduct.id);
 
     if (imageUpdateError) {
-        // Clean up the uploaded image and product if saving its path fails.
-        await auth.supabase.storage
-            .from(PRODUCT_IMAGE_BUCKET)
-            .remove([imagePath]);
+        await auth.supabase
+            .from("product_images")
+            .delete()
+            .eq("product_id", newProduct.id);
+
+        await removeUploadedImages(auth.supabase, uploadResult.paths);
 
         await auth.supabase
             .from("products")
@@ -236,13 +329,13 @@ export async function createProduct(formData: FormData) {
 
         return {
             success: false,
-            message: `Could not save product image: ${imageUpdateError.message}`,
+            message: `Could not save primary product image: ${imageUpdateError.message}`,
         };
     }
 
     return {
         success: true,
-        message: "Product and image added successfully!",
+        message: `Product added successfully with ${uploadResult.paths.length} image(s)!`,
     };
 }
 
@@ -255,11 +348,7 @@ export async function updateProduct(formData: FormData) {
 
     const productId = String(formData.get("productId") ?? "").trim();
 
-    if (
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-            productId
-        )
-    ) {
+    if (!isValidProductId(productId)) {
         return {
             success: false,
             message: "A valid product ID is required.",
@@ -275,7 +364,7 @@ export async function updateProduct(formData: FormData) {
         };
     }
 
-    const imageResult = readProductImage(formData);
+    const imageResult = readProductImages(formData);
 
     if (imageResult.error) {
         return {
@@ -284,7 +373,6 @@ export async function updateProduct(formData: FormData) {
         };
     }
 
-    // Find the existing product and remember its current image path.
     const { data: existingProduct, error: lookupError } =
         await auth.supabase
             .from("products")
@@ -299,8 +387,8 @@ export async function updateProduct(formData: FormData) {
         };
     }
 
-    // No replacement image: update only the product details.
-    if (!imageResult.image) {
+    // Update product details only when no new images were selected.
+    if (imageResult.images.length === 0) {
         const { error } = await auth.supabase
             .from("products")
             .update({
@@ -329,40 +417,77 @@ export async function updateProduct(formData: FormData) {
         };
     }
 
-    // Create a unique path for the replacement image.
-    const newImagePath = `${productId}/${crypto.randomUUID()}.${imageResult.extension}`;
+    // Find the current primary gallery image.
+    const { data: gallery, error: galleryError } = await auth.supabase
+        .from("product_images")
+        .select("id, image_path, is_primary")
+        .eq("product_id", productId)
+        .order("created_at", { ascending: true });
 
-    // Upload the replacement without overwriting the existing image.
-    const { error: uploadError } = await auth.supabase.storage
-        .from(PRODUCT_IMAGE_BUCKET)
-        .upload(newImagePath, imageResult.image, {
-            contentType: imageResult.image.type,
-            cacheControl: "3600",
-            upsert: false,
-        });
-
-    if (uploadError) {
+    if (galleryError) {
         return {
             success: false,
-            message: `Product image upload failed: ${uploadError.message}`,
+            message: `Could not load the existing image gallery: ${galleryError.message}`,
         };
     }
 
-    // Update product details and point to the replacement image.
+    const hasPrimaryImage = (gallery ?? []).some(
+        (image) => image.is_primary
+    );
+
+    const uploadResult = await uploadProductImages(
+        auth.supabase,
+        productId,
+        imageResult.images
+    );
+
+    if (uploadResult.error) {
+        return {
+            success: false,
+            message: uploadResult.error,
+        };
+    }
+
+    const imageRows = uploadResult.paths.map((path, index) => ({
+        product_id: productId,
+        image_path: path,
+        is_primary: !hasPrimaryImage && index === 0,
+    }));
+
+    const { error: insertImagesError } = await auth.supabase
+        .from("product_images")
+        .insert(imageRows);
+
+    if (insertImagesError) {
+        await removeUploadedImages(auth.supabase, uploadResult.paths);
+
+        return {
+            success: false,
+            message: `Could not add images to the gallery: ${insertImagesError.message}`,
+        };
+    }
+
+    const newPrimaryPath = !hasPrimaryImage
+        ? uploadResult.paths[0]
+        : existingProduct.image_path;
+
     const { error: updateError } = await auth.supabase
         .from("products")
         .update({
             ...result.product,
-            image_path: newImagePath,
+            image_path: newPrimaryPath,
             updated_at: new Date().toISOString(),
         })
         .eq("id", productId);
 
     if (updateError) {
-        // Keep the original image and remove the unused replacement.
-        await auth.supabase.storage
-            .from(PRODUCT_IMAGE_BUCKET)
-            .remove([newImagePath]);
+        await auth.supabase
+            .from("product_images")
+            .delete()
+            .eq("product_id", productId)
+            .in("image_path", uploadResult.paths);
+
+        await removeUploadedImages(auth.supabase, uploadResult.paths);
 
         if (updateError.code === "23505") {
             return {
@@ -377,24 +502,302 @@ export async function updateProduct(formData: FormData) {
         };
     }
 
-    // The database now points to the new image.
-    // Remove the old image only after the update succeeds.
-    if (existingProduct.image_path) {
-        const { error: deleteOldImageError } = await auth.supabase.storage
-            .from(PRODUCT_IMAGE_BUCKET)
-            .remove([existingProduct.image_path]);
+    return {
+        success: true,
+        message: `${uploadResult.paths.length} image(s) added successfully!`,
+    };
+}
 
-        if (deleteOldImageError) {
-            console.error(
-                "Product was updated, but the old image could not be deleted:",
-                deleteOldImageError.message
-            );
+export async function setPrimaryProductImage(
+    productId: string,
+    imageId: string
+) {
+    const auth = await getAuthorizedClient();
+
+    if (!auth.authorized) {
+        return { success: false, message: auth.message };
+    }
+
+    if (!isValidProductId(productId) || !isValidProductId(imageId)) {
+        return {
+            success: false,
+            message: "Invalid product or image ID.",
+        };
+    }
+
+    const { data: targetImage, error: targetError } = await auth.supabase
+        .from("product_images")
+        .select("id, image_path, is_primary")
+        .eq("id", imageId)
+        .eq("product_id", productId)
+        .maybeSingle();
+
+    if (targetError || !targetImage) {
+        return {
+            success: false,
+            message: "Image not found in this product gallery.",
+        };
+    }
+
+    const { data: previousPrimary } = await auth.supabase
+        .from("product_images")
+        .select("id, image_path")
+        .eq("product_id", productId)
+        .eq("is_primary", true)
+        .maybeSingle();
+
+    if (targetImage.is_primary) {
+        const { error } = await auth.supabase
+            .from("products")
+            .update({ image_path: targetImage.image_path })
+            .eq("id", productId);
+
+        return error
+            ? {
+                success: false,
+                message: `Could not synchronize primary image: ${error.message}`,
+            }
+            : {
+                success: true,
+                message: "This is already the primary image.",
+            };
+    }
+
+    if (previousPrimary) {
+        const { error } = await auth.supabase
+            .from("product_images")
+            .update({ is_primary: false })
+            .eq("id", previousPrimary.id);
+
+        if (error) {
+            return {
+                success: false,
+                message: `Could not change primary image: ${error.message}`,
+            };
         }
+    }
+
+    const { error: promoteError } = await auth.supabase
+        .from("product_images")
+        .update({ is_primary: true })
+        .eq("id", imageId)
+        .eq("product_id", productId);
+
+    if (promoteError) {
+        if (previousPrimary) {
+            await auth.supabase
+                .from("product_images")
+                .update({ is_primary: true })
+                .eq("id", previousPrimary.id);
+        }
+
+        return {
+            success: false,
+            message: `Could not select primary image: ${promoteError.message}`,
+        };
+    }
+
+    const { error: productUpdateError } = await auth.supabase
+        .from("products")
+        .update({
+            image_path: targetImage.image_path,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", productId);
+
+    if (productUpdateError) {
+        await auth.supabase
+            .from("product_images")
+            .update({ is_primary: false })
+            .eq("id", imageId);
+
+        if (previousPrimary) {
+            await auth.supabase
+                .from("product_images")
+                .update({ is_primary: true })
+                .eq("id", previousPrimary.id);
+        }
+
+        return {
+            success: false,
+            message: `Could not update product image: ${productUpdateError.message}`,
+        };
     }
 
     return {
         success: true,
-        message: "Product and image updated successfully!",
+        message: "Primary product image updated successfully!",
+    };
+}
+
+export async function deleteProductImage(
+    productId: string,
+    imageId: string
+) {
+    const auth = await getAuthorizedClient();
+
+    if (!auth.authorized) {
+        return { success: false, message: auth.message };
+    }
+
+    if (!isValidProductId(productId) || !isValidProductId(imageId)) {
+        return {
+            success: false,
+            message: "Invalid product or image ID.",
+        };
+    }
+
+    const { data: targetImage, error: targetError } = await auth.supabase
+        .from("product_images")
+        .select("id, image_path, is_primary")
+        .eq("id", imageId)
+        .eq("product_id", productId)
+        .maybeSingle();
+
+    if (targetError || !targetImage) {
+        return {
+            success: false,
+            message: "Image not found in this product gallery.",
+        };
+    }
+
+    let nextPrimary: { id: string; image_path: string } | null = null;
+
+    if (targetImage.is_primary) {
+        const { data: remainingImages, error: remainingError } =
+            await auth.supabase
+                .from("product_images")
+                .select("id, image_path")
+                .eq("product_id", productId)
+                .neq("id", imageId)
+                .order("created_at", { ascending: true })
+                .limit(1);
+
+        if (remainingError) {
+            return {
+                success: false,
+                message: `Could not load remaining images: ${remainingError.message}`,
+            };
+        }
+
+        nextPrimary = remainingImages?.[0] ?? null;
+
+        // Release the unique primary-image constraint before promoting another.
+        const { error: unsetError } = await auth.supabase
+            .from("product_images")
+            .update({ is_primary: false })
+            .eq("id", imageId);
+
+        if (unsetError) {
+            return {
+                success: false,
+                message: `Could not prepare image deletion: ${unsetError.message}`,
+            };
+        }
+
+        if (nextPrimary) {
+            const { error: promoteError } = await auth.supabase
+                .from("product_images")
+                .update({ is_primary: true })
+                .eq("id", nextPrimary.id);
+
+            if (promoteError) {
+                await auth.supabase
+                    .from("product_images")
+                    .update({ is_primary: true })
+                    .eq("id", imageId);
+
+                return {
+                    success: false,
+                    message: `Could not select another primary image: ${promoteError.message}`,
+                };
+            }
+        }
+
+        const { error: syncError } = await auth.supabase
+            .from("products")
+            .update({
+                image_path: nextPrimary?.image_path ?? null,
+                updated_at: new Date().toISOString(),
+            })
+            .eq("id", productId);
+
+        if (syncError) {
+            if (nextPrimary) {
+                await auth.supabase
+                    .from("product_images")
+                    .update({ is_primary: false })
+                    .eq("id", nextPrimary.id);
+            }
+
+            await auth.supabase
+                .from("product_images")
+                .update({ is_primary: true })
+                .eq("id", imageId);
+
+            return {
+                success: false,
+                message: `Could not update product primary image: ${syncError.message}`,
+            };
+        }
+    }
+
+    const { error: deleteRowError } = await auth.supabase
+        .from("product_images")
+        .delete()
+        .eq("id", imageId)
+        .eq("product_id", productId);
+
+    if (deleteRowError) {
+        // Restore the previous primary image if the gallery row cannot be deleted.
+        if (targetImage.is_primary) {
+            if (nextPrimary) {
+                await auth.supabase
+                    .from("product_images")
+                    .update({ is_primary: false })
+                    .eq("id", nextPrimary.id);
+            }
+
+            await auth.supabase
+                .from("product_images")
+                .update({ is_primary: true })
+                .eq("id", imageId);
+
+            await auth.supabase
+                .from("products")
+                .update({ image_path: targetImage.image_path })
+                .eq("id", productId);
+        }
+
+        return {
+            success: false,
+            message: `Could not remove image from gallery: ${deleteRowError.message}`,
+        };
+    }
+
+    const { error: storageError } = await auth.supabase.storage
+        .from(PRODUCT_IMAGE_BUCKET)
+        .remove([targetImage.image_path]);
+
+    if (storageError) {
+        console.error(
+            "Gallery image row deleted, but storage cleanup failed:",
+            storageError.message
+        );
+
+        return {
+            success: true,
+            message: "Image removed from gallery, but its storage file could not be cleaned up.",
+        };
+    }
+
+    return {
+        success: true,
+        message: targetImage.is_primary
+            ? nextPrimary
+                ? "Image deleted. Another image is now primary."
+                : "Image deleted. This product no longer has a primary image."
+            : "Image deleted successfully!",
     };
 }
 
@@ -409,9 +812,7 @@ export async function setProductActive(
     }
 
     if (
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-            productId
-        ) ||
+        !isValidProductId(productId) ||
         typeof isActive !== "boolean"
     ) {
         return {
