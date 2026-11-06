@@ -7,7 +7,14 @@ export function createAdminClient() {
     const secretKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url || !secretKey) {
-        throw new Error("Missing Supabase Admin environment variables.");
+        const missing = [];
+
+        if (!url) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+        if (!secretKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+
+        throw new Error(
+            `Missing Supabase Admin environment variables: ${missing.join(", ")}`,
+        );
     }
 
     return createSupabaseClient(url, secretKey, {
