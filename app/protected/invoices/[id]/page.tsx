@@ -283,7 +283,7 @@ export default async function InvoiceDetailsPage({
     const canDelete = canAdministerAssignments;
 
     // Load employees and current assignments for administrators.
-    let employees: { id: string; name: string }[] = [];
+    let employees: { id: string; name: string; email: string }[] = [];
     let assignedEmployeeIds: string[] = [];
 
     if (canAdministerAssignments) {
@@ -321,9 +321,29 @@ export default async function InvoiceDetailsPage({
             employeeProfiles.map((profile) => [profile.id, profile.full_name])
         );
 
+        const { data: employeeContacts, error: contactsError } =
+            await supabase.rpc("get_active_employee_contacts");
+
+        if (contactsError) {
+            throw new Error("Unable to load employee email addresses.");
+        }
+
+        const typedEmployeeContacts = (employeeContacts ?? []) as {
+            user_id: string;
+            email: string | null;
+        }[];
+
+        const emailById = new Map(
+            typedEmployeeContacts.map((contact) => [
+                contact.user_id,
+                contact.email,
+            ])
+        );
+
         employees = employeeIds.map((id) => ({
             id,
-            name: profileNameById.get(id) || "Employee (profile unavailable)",
+            name: profileNameById.get(id) || "Employee",
+            email: emailById.get(id) || "Email unavailable",
         }));
 
         const { data: assignments, error: assignmentsError } = await supabase

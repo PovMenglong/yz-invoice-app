@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 type Employee = {
     id: string;
     name: string;
+    email: string;
 };
 
 export default function InvoiceAssignmentManager({
@@ -127,7 +128,7 @@ export default function InvoiceAssignmentManager({
                                         key={employee.id}
                                         value={employee.id}
                                     >
-                                        {employee.name}
+                                        {employee.name} ({employee.email})
                                     </option>
                                 ))
                             )}
@@ -167,9 +168,14 @@ export default function InvoiceAssignmentManager({
                                         key={employee.id}
                                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
                                     >
-                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                                            {employee.name}
-                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                                                {employee.name}
+                                            </p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                {employee.email}
+                                            </p>
+                                        </div>
 
                                         <button
                                             type="button"
