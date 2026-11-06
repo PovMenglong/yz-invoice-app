@@ -279,7 +279,22 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error("Unexpected employee invitation error:", error);
+        const errorDetails =
+            error instanceof Error
+                ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                }
+                : {
+                    name: "UnknownError",
+                    message: String(error),
+                };
+
+        console.error(
+            "Unexpected employee invitation error:",
+            JSON.stringify(errorDetails),
+        );
 
         return NextResponse.json(
             {
