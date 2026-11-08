@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
             process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
 
         // Build the confirmation URL and safely encode the next destination.
-        const redirectUrl = new URL("/auth/confirm", siteUrl);
+        const redirectUrl = new URL("/auth/accept-invitation", siteUrl);
 
         redirectUrl.searchParams.set(
             "next",
