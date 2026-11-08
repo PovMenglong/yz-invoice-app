@@ -9,6 +9,12 @@ export function createAdminClient() {
         SUPABASE_SERVICE_ROLE_KEY?: string;
     };
     const secretKey = env.SUPABASE_SERVICE_ROLE_KEY;
+    console.log("[Supabase Admin diagnostic]", {
+        supabaseBindings: Object.keys(env).filter((key) =>
+            key.includes("SUPABASE"),
+        ),
+        hasServiceRoleKey: Boolean(secretKey),
+    });
 
     if (!url || !secretKey) {
         const missing = [];
